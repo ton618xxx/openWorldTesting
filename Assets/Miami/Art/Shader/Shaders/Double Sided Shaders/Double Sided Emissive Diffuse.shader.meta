@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: d0188c64b3ff75947a4e285da6cedcd4
+timeCreated: 1489413550
+licenseType: Store
+ShaderImporter:
+  defaultTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 209256
+  packageName: Miami City Pack
+  packageVersion: 1.0
+  assetPath: Assets/Miami/Art/Shader/Shaders/Double Sided Shaders/Double Sided Emissive
+    Diffuse.shader
+  uploadId: 469850

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c140337da3cfcbf429087ff3061221ff
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 112000000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 209256
+  packageName: Miami City Pack
+  packageVersion: 1.0
+  assetPath: Assets/Miami/Scenes/SCENE_Miami_Assets/LightingData.asset
+  uploadId: 469850
