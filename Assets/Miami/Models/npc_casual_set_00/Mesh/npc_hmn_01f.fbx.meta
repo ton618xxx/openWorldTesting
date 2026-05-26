@@ -1,7 +1,14 @@
 fileFormatVersion: 2
 guid: 07cfd655bf23cbc409ab05c4e0d2d549
+AssetOrigin:
+  serializedVersion: 1
+  productId: 326131
+  packageName: npc_casual_set_00
+  packageVersion: 1.0.3
+  assetPath: Assets/npc_casual_set_00/Mesh/npc_hmn_01f.fbx
+  uploadId: 807672
 ModelImporter:
-  serializedVersion: 22200
+  serializedVersion: 24200
   internalIDToNameTable: []
   externalObjects:
   - first:
@@ -56,8 +63,6 @@ ModelImporter:
     optimizeGameObjects: 0
     removeConstantScaleCurves: 1
     motionNodeName: 
-    rigImportErrors: 
-    rigImportWarnings: 
     animationImportErrors: 
     animationImportWarnings: 
     animationRetargetingWarnings: 
@@ -98,6 +103,9 @@ ModelImporter:
     maxBonesPerVertex: 4
     minBoneWeight: 0.001
     optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
     meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
@@ -619,7 +627,7 @@ ModelImporter:
     - name: LeftToeBase
       parentName: LeftFoot
       position: {x: -0.17912562, y: -1.7763568e-17, z: 7.105427e-17}
-      rotation: {x: -0.000000018626451, y: 0.00000012200326, z: 0.23700768, w: 0.97150785}
+      rotation: {x: 0.15120883, y: -0.10709094, z: -0.21143481, w: 0.95966804}
       scale: {x: 1.0000013, y: 1.0000027, z: 1.000002}
     - name: RightUpLeg
       parentName: Hips
@@ -716,11 +724,6 @@ ModelImporter:
       position: {x: -0.022726417, y: -2.842171e-16, z: 0.00000007629394}
       rotation: {x: -0.000000019549725, y: -0.0000000065062395, z: 0.018586602, w: 0.99982727}
       scale: {x: 1.0000007, y: 1, z: 0.99999976}
-    - name: LeftHandProp
-      parentName: LeftHand
-      position: {x: -0.07249809, y: -0.020220334, z: 0.0037999712}
-      rotation: {x: -0, y: -0, z: 0.000000001164153, w: 1}
-      scale: {x: 0.99999964, y: 0.9999996, z: 0.99999964}
     - name: LeftHandRing1
       parentName: LeftHand
       position: {x: -0.093087375, y: 0.013081194, z: -0.017438812}
@@ -769,7 +772,7 @@ ModelImporter:
     - name: RightArm
       parentName: RightShoulder
       position: {x: 0.12, y: 0.0025058892, z: 0.0000006617542}
-      rotation: {x: -0.0014638013, y: 0.0026234144, z: -0.01083099, w: 0.9999368}
+      rotation: {x: -0.0014638015, y: 0.0026234144, z: -0.010830992, w: 0.9999368}
       scale: {x: 0.9999997, y: 1.0000021, z: 1.000002}
     - name: RightForeArm
       parentName: RightArm
@@ -826,12 +829,6 @@ ModelImporter:
       position: {x: 0.02273298, y: 0.0000061226715, z: 0.0000009729947}
       rotation: {x: 0.00000016208479, y: 0.00000001040739, z: 0.018586611, w: 0.9998273}
       scale: {x: 1.0000005, y: 1.000003, z: 1.0000021}
-    - name: RightHandProp
-      parentName: RightHand
-      position: {x: 0.07249664, y: 0.02021976, z: -0.0038000562}
-      rotation: {x: 0.00000005960463, y: 0.000000048428763, z: -0.0000000032596283,
-        w: 1}
-      scale: {x: 0.99999994, y: 1.000001, z: 1.0000004}
     - name: RightHandRing1
       parentName: RightHand
       position: {x: 0.09308651, y: -0.013081985, z: 0.017438991}
@@ -886,10 +883,3 @@ ModelImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 326131
-  packageName: npc_casual_set_00
-  packageVersion: 1.0.3
-  assetPath: Assets/npc_casual_set_00/Mesh/npc_hmn_01f.fbx
-  uploadId: 807672

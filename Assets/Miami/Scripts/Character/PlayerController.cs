@@ -7,6 +7,7 @@ public class PlayerController : MonoBehaviour
 {
     [Header("References")] // 
     [SerializeField] private Transform cameraTarget; //  
+    [SerializeField] private Animator animator; // Animator с humanoid-аватаром, который проигрывает Idle/Walk/Run через Blend Tree.
 
     [Header("Movement")]
     [SerializeField] private float walkSpeed = 3.5f; // Скорость обычной ходьбы.
@@ -17,6 +18,11 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float jumpHeight = 1.2f; // Высота прыжка в Unity-метрах.
     [SerializeField] private float gravity = -20f; // Сила гравитации. Отрицательная, потому что вниз по оси Y.
 
+    [Header("Animation")]
+    [SerializeField] private float speedDamp = 0.1f; // Сглаживание параметра Speed, чтобы переходы Idle→Walk→Run выглядели плавно.
+
+    private static readonly int SpeedHash = Animator.StringToHash("Speed"); // Хешируем имя параметра один раз — это быстрее, чем каждый кадр сравнивать строку.
+
     private CharacterController characterController; // Ссылка на компонент Character Controller на этом же объекте.
     private InputSystem_Actions inputActions; // Ссылка на сгенерированный Unity класс из InputSystem_Actions.inputactions.
 
@@ -25,6 +31,11 @@ public class PlayerController : MonoBehaviour
     private void Awake() 
     {
         characterController = GetComponent<CharacterController>(); // Берём CharacterController с того же объекта, где висит этот скрипт.
+
+        if (animator == null) // Если Animator не назначен в инспекторе...
+        {
+            animator = GetComponentInChildren<Animator>(); // ...пробуем найти его в дочерних объектах (модель обычно лежит ребёнком).
+        }
 
         inputActions = new InputSystem_Actions(); // Создаём экземпляр сгенерированного класса ввода.
     }
@@ -93,5 +104,12 @@ public class PlayerController : MonoBehaviour
         Vector3 finalMovement = horizontalMovement + verticalVelocity; // Складываем горизонтальное движение и вертикальное падение/прыжок.
 
         characterController.Move(finalMovement * Time.deltaTime); // Двигаем CharacterController с учётом времени кадра.
+
+        if (animator != null) // Если Animator привязан, прокидываем в него текущую скорость.
+        {
+            float planarSpeed = new Vector2(characterController.velocity.x, characterController.velocity.z).magnitude; // Берём реальную горизонтальную скорость в м/с — она совпадает с Threshold-ами в Blend Tree (0 / walkSpeed / sprintSpeed).
+
+            animator.SetFloat(SpeedHash, planarSpeed, speedDamp, Time.deltaTime); // SetFloat с дампингом плавно интерполирует параметр Speed — переходы между Idle/Walk/Run без рывков.
+        }
     }
 }
