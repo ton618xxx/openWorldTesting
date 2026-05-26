@@ -89,6 +89,7 @@ public class PlayerController : MonoBehaviour
 
         bool grounded = characterController.isGrounded;
 
+        
         if (grounded && verticalVelocity.y < 0f)
         {
             verticalVelocity.y = -2f;
