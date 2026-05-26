@@ -28,11 +28,11 @@
   <Project Path="UnityEditor.UI.csproj" />
   <Project Path="Unity.TextMeshPro.csproj" />
   <Project Path="Unity.VisualScripting.SettingsProvider.Editor.csproj" />
-  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Unity.TestTools.CodeCoverage.Editor.OpenCover.Mono.Reflection.csproj" />
   <Project Path="Unity.Settings.Editor.csproj" />
   <Project Path="Unity.InputSystem.DocCodeSamples.csproj" />
   <Project Path="Unity.Multiplayer.Center.Common.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Unity.InputSystem.ForUI.csproj" />
   <Project Path="Unity.Mathematics.Editor.csproj" />
   <Project Path="Unity.CollabProxy.Editor.csproj" />
