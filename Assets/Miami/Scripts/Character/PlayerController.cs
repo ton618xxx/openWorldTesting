@@ -1,115 +1,125 @@
-using UnityEngine; // Подключаем базовую библиотеку Unity: Transform, Vector3, MonoBehaviour, Mathf и т.д.
-using UnityEngine.InputSystem; // Подключаем New Input System, чтобы работать с InputAction и ReadValue.
+using UnityEngine;
+using UnityEngine.InputSystem;
 
 
-[DisallowMultipleComponent] // Этот атрибут запрещает добавлять более одного экземпляра этого скрипта на один GameObject в Unity Editor.
+[DisallowMultipleComponent]
 public class PlayerController : MonoBehaviour
 {
-    [Header("References")] // 
-    [SerializeField] private Transform cameraTarget; //  
-    [SerializeField] private Animator animator; // Animator с humanoid-аватаром, который проигрывает Idle/Walk/Run через Blend Tree.
+    [Header("References")]
+    [SerializeField] private Transform cameraTarget;
+    [SerializeField] private Animator animator;
 
     [Header("Movement")]
-    [SerializeField] private float walkSpeed = 3.5f; // Скорость обычной ходьбы.
-    [SerializeField] private float sprintSpeed = 6f; // Скорость бега при зажатом Sprint.
-    [SerializeField] private float turnSpeed = 12f; // Скорость, с которой тело персонажа разворачивается в сторону движения.
+    [SerializeField] private float walkSpeed = 3.5f;
+    [SerializeField] private float sprintSpeed = 6f;
+    [SerializeField] private float turnSpeed = 12f;
 
     [Header("Jump / Gravity")]
-    [SerializeField] private float jumpHeight = 1.2f; // Высота прыжка в Unity-метрах.
-    [SerializeField] private float gravity = -20f; // Сила гравитации. Отрицательная, потому что вниз по оси Y.
+    [SerializeField] private float jumpHeight = 1.2f;
+    [SerializeField] private float gravity = -20f;
+    [SerializeField] private float jumpCooldown = 0.15f;
 
     [Header("Animation")]
-    [SerializeField] private float speedDamp = 0.1f; // Сглаживание параметра Speed, чтобы переходы Idle→Walk→Run выглядели плавно.
+    [SerializeField] private float speedDamp = 0.1f;
 
-    private static readonly int SpeedHash = Animator.StringToHash("Speed"); // Хешируем имя параметра один раз — это быстрее, чем каждый кадр сравнивать строку.
+    private static readonly int SpeedHash = Animator.StringToHash("Speed");
+    private static readonly int JumpHash = Animator.StringToHash("Jump");
 
-    private CharacterController characterController; // Ссылка на компонент Character Controller на этом же объекте.
-    private InputSystem_Actions inputActions; // Ссылка на сгенерированный Unity класс из InputSystem_Actions.inputactions.
+    private CharacterController characterController;
+    private InputSystem_Actions inputActions;
 
-    private Vector3 verticalVelocity; // Отдельно храним вертикальную скорость: падение и прыжок.
+    private Vector3 verticalVelocity;
+    private bool isJumping;
+    private float nextJumpTime;
 
-    private void Awake() 
+    private void Awake()
     {
-        characterController = GetComponent<CharacterController>(); // Берём CharacterController с того же объекта, где висит этот скрипт.
+        characterController = GetComponent<CharacterController>();
 
-        if (animator == null) // Если Animator не назначен в инспекторе...
+        if (animator == null)
         {
-            animator = GetComponentInChildren<Animator>(); // ...пробуем найти его в дочерних объектах (модель обычно лежит ребёнком).
+            animator = GetComponentInChildren<Animator>();
         }
 
-        inputActions = new InputSystem_Actions(); // Создаём экземпляр сгенерированного класса ввода.
+        inputActions = new InputSystem_Actions();
     }
 
-    private void OnEnable() // Вызывается, когда объект или компонент включается.
+    private void OnEnable()
     {
-        inputActions.Player.Enable(); // Включаем карту действий Player, чтобы Move/Jump/Sprint начали читать ввод.
+        inputActions.Player.Enable();
     }
 
-    private void OnDisable() // Вызывается, когда объект или компонент выключается.
+    private void OnDisable()
     {
-        inputActions.Player.Disable(); // Отключаем ввод, чтобы не читать его, когда персонаж выключен.
+        inputActions.Player.Disable();
     }
 
-    private void Update() // Update вызывается каждый кадр.
+    private void Update()
     {
-        Vector2 moveInput = inputActions.Player.Move.ReadValue<Vector2>(); // Читаем WASD/стик. X = влево/вправо, Y = назад/вперёд.
+        Vector2 moveInput = inputActions.Player.Move.ReadValue<Vector2>();
+        bool isSprinting = inputActions.Player.Sprint.IsPressed();
+        bool jumpPressed = inputActions.Player.Jump.WasPressedThisFrame();
 
-        bool isSprinting = inputActions.Player.Sprint.IsPressed(); // Проверяем, зажата ли кнопка Sprint.
+        Vector3 cameraForward = cameraTarget.forward;
+        Vector3 cameraRight = cameraTarget.right;
 
-        bool jumpPressed = inputActions.Player.Jump.WasPressedThisFrame(); // Проверяем, был ли Jump нажат именно в этот кадр.
+        cameraForward.y = 0f;
+        cameraRight.y = 0f;
+        cameraForward.Normalize();
+        cameraRight.Normalize();
 
-        Vector3 cameraForward = cameraTarget.forward; // Берём направление "вперёд" от CameraTarget.
-        Vector3 cameraRight = cameraTarget.right; // Берём направление "вправо" от CameraTarget.
+        Vector3 moveDirection = cameraForward * moveInput.y + cameraRight * moveInput.x;
 
-        cameraForward.y = 0f; // Убираем вертикаль, чтобы персонаж не пытался идти вверх/вниз из-за наклона камеры.
-        cameraRight.y = 0f; // Убираем вертикаль у правого направления по той же причине.
-
-        cameraForward.Normalize(); // Нормализуем, чтобы длина вектора была 1 и скорость не зависела от наклона.
-        cameraRight.Normalize(); // Нормализуем правый вектор.
-
-        Vector3 moveDirection = cameraForward * moveInput.y + cameraRight * moveInput.x; // Превращаем ввод WASD в направление движения относительно камеры.
-
-        if (moveDirection.sqrMagnitude > 1f) // Если диагональное движение получилось длиннее 1...
+        if (moveDirection.sqrMagnitude > 1f)
         {
-            moveDirection.Normalize(); // ...нормализуем, чтобы по диагонали персонаж не бежал быстрее.
+            moveDirection.Normalize();
         }
 
-        float currentSpeed = isSprinting ? sprintSpeed : walkSpeed; // Если Sprint зажат, берём скорость бега, иначе скорость ходьбы.
+        float currentSpeed = isSprinting ? sprintSpeed : walkSpeed;
+        Vector3 horizontalMovement = moveDirection * currentSpeed;
 
-        Vector3 horizontalMovement = moveDirection * currentSpeed; // Считаем горизонтальную скорость движения.
-
-        if (moveDirection.sqrMagnitude > 0.01f) // Если игрок реально двигается, а не стоит на месте...
+        if (moveDirection.sqrMagnitude > 0.01f)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(moveDirection); // Создаём поворот, чтобы персонаж смотрел в сторону движения.
-
-            transform.rotation = Quaternion.Slerp( // Плавно поворачиваем Character к нужному направлению.
-                transform.rotation, // Текущий поворот персонажа.
-                targetRotation, // Целевой поворот в сторону движения.
-                turnSpeed * Time.deltaTime // Насколько быстро поворачиваемся, с учётом времени кадра.
-            );
+            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRotation,
+                turnSpeed * Time.deltaTime);
         }
 
-        if (characterController.isGrounded && verticalVelocity.y < 0f) // Если персонаж на земле и сейчас падает вниз...
+        bool grounded = characterController.isGrounded;
+
+        if (grounded && verticalVelocity.y < 0f)
         {
-            verticalVelocity.y = -2f; // Прижимаем его к земле маленькой отрицательной скоростью, чтобы isGrounded работал стабильнее.
+            verticalVelocity.y = -2f;
         }
 
-        if (jumpPressed && characterController.isGrounded) // Если нажали прыжок и персонаж стоит на земле...
+        // Сбрасываем только при приземлении (падаем вниз), не на вершине прыжка где velocity.y ≈ 0.
+        if (isJumping && grounded && verticalVelocity.y < 0f)
         {
-            verticalVelocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity); // Считаем начальную скорость прыжка по физической формуле.
+            isJumping = false;
         }
 
-        verticalVelocity.y += gravity * Time.deltaTime; // Каждый кадр добавляем гравитацию к вертикальной скорости.
-
-        Vector3 finalMovement = horizontalMovement + verticalVelocity; // Складываем горизонтальное движение и вертикальное падение/прыжок.
-
-        characterController.Move(finalMovement * Time.deltaTime); // Двигаем CharacterController с учётом времени кадра.
-
-        if (animator != null) // Если Animator привязан, прокидываем в него текущую скорость.
+        if (jumpPressed && grounded && !isJumping && Time.time >= nextJumpTime)
         {
-            float planarSpeed = new Vector2(characterController.velocity.x, characterController.velocity.z).magnitude; // Берём реальную горизонтальную скорость в м/с — она совпадает с Threshold-ами в Blend Tree (0 / walkSpeed / sprintSpeed).
+            verticalVelocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+            isJumping = true;
+            nextJumpTime = Time.time + jumpCooldown;
 
-            animator.SetFloat(SpeedHash, planarSpeed, speedDamp, Time.deltaTime); // SetFloat с дампингом плавно интерполирует параметр Speed — переходы между Idle/Walk/Run без рывков.
+            if (animator != null)
+            {
+                animator.ResetTrigger(JumpHash);
+                animator.SetTrigger(JumpHash);
+            }
+        }
+
+        verticalVelocity.y += gravity * Time.deltaTime;
+        characterController.Move((horizontalMovement + verticalVelocity) * Time.deltaTime);
+
+        if (animator != null)
+        {
+            float planarSpeed = new Vector2(characterController.velocity.x, characterController.velocity.z).magnitude;
+            animator.SetFloat(SpeedHash, planarSpeed, speedDamp, Time.deltaTime);
         }
     }
 }
