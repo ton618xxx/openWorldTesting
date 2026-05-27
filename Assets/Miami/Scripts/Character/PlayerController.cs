@@ -22,6 +22,10 @@ public class PlayerController : MonoBehaviour
     [Header("Animation")]
     [SerializeField] private float speedDamp = 0.1f;
 
+    [Header("Aiming")]
+    [SerializeField] private GameObject aimCamera;
+    [SerializeField] private float aimTurnSpeed = 20f;
+
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
     private static readonly int JumpHash = Animator.StringToHash("Jump");
 
@@ -31,6 +35,7 @@ public class PlayerController : MonoBehaviour
     private Vector3 verticalVelocity;
     private bool isJumping;
     private float nextJumpTime;
+    private bool isAiming;
 
     private void Awake()
     {
@@ -59,6 +64,8 @@ public class PlayerController : MonoBehaviour
         Vector2 moveInput = inputActions.Player.Move.ReadValue<Vector2>();
         bool isSprinting = inputActions.Player.Sprint.IsPressed();
         bool jumpPressed = inputActions.Player.Jump.WasPressedThisFrame();
+        isAiming = inputActions.Player.Aim.IsPressed();
+
 
         Vector3 cameraForward = cameraTarget.forward;
         Vector3 cameraRight = cameraTarget.right;
@@ -70,22 +77,37 @@ public class PlayerController : MonoBehaviour
 
         Vector3 moveDirection = cameraForward * moveInput.y + cameraRight * moveInput.x;
 
+        // Это предотвратит ускорение при беге по диагонали
         if (moveDirection.sqrMagnitude > 1f)
         {
             moveDirection.Normalize();
         }
 
-        float currentSpeed = isSprinting ? sprintSpeed : walkSpeed;
-        Vector3 horizontalMovement = moveDirection * currentSpeed;
 
-        if (moveDirection.sqrMagnitude > 0.01f)
+        if (isAiming)
         {
+            // Если прицеливаемся — персонаж всегда смотрит туда, куда смотрит камера
+            Vector3 targetLook = cameraTarget.forward;
+            targetLook.y = 0; // Нам не нужно, чтобы персонаж наклонялся вверх/вниз всем телом
+            Quaternion targetRotation = Quaternion.LookRotation(targetLook);
+
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRotation,
+                aimTurnSpeed * Time.deltaTime);
+        }
+        else if (moveDirection.sqrMagnitude > 0.01f)
+        {
+            // Старая логика: поворот в сторону бега
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
             transform.rotation = Quaternion.Slerp(
                 transform.rotation,
                 targetRotation,
                 turnSpeed * Time.deltaTime);
         }
+
+        float currentSpeed = isSprinting ? sprintSpeed : walkSpeed;
+        Vector3 horizontalMovement = moveDirection * currentSpeed;
 
         bool grounded = characterController.isGrounded;
 
@@ -121,6 +143,17 @@ public class PlayerController : MonoBehaviour
         {
             float planarSpeed = new Vector2(characterController.velocity.x, characterController.velocity.z).magnitude;
             animator.SetFloat(SpeedHash, planarSpeed, speedDamp, Time.deltaTime);
+        }
+
+        if (aimCamera != null)
+        {
+            aimCamera.SetActive(isAiming);
+        }
+
+        if (animator != null)
+        {
+            // Передаем состояние прицеливания в аниматор
+            animator.SetBool("IsAiming", isAiming);
         }
     }
 }
