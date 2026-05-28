@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-
 [DisallowMultipleComponent]
 public class PlayerController : MonoBehaviour
 {
@@ -25,7 +24,7 @@ public class PlayerController : MonoBehaviour
 
     [Header("Aiming")]
     [SerializeField] private GameObject aimCamera;
-    [SerializeField] private float aimTurnSpeed = 20f;
+    [SerializeField] private float aimTurnSpeed = 30f; // Увеличили для большей отзывчивости
     [SerializeField] private int aimPriority = 20;
     [SerializeField] private int defaultPriority = 5;
 
@@ -35,14 +34,13 @@ public class PlayerController : MonoBehaviour
     private CharacterController characterController;
     private InputSystem_Actions inputActions;
     private Unity.Cinemachine.CinemachineCamera aimVcam;
-    private Camera mainCamera;
     private Transform myTransform;
 
     private Vector3 verticalVelocity;
     private bool isJumping;
     private float nextJumpTime;
     private bool isAiming;
-    private int currentVcamPriority;
+    private float ikWeight = 0f; // Плавный переход для IK
 
     private void Awake()
     {
@@ -63,16 +61,10 @@ public class PlayerController : MonoBehaviour
         {
             if (aimCamera.TryGetComponent(out aimVcam))
             {
-                // Убеждаемся, что камера активна, чтобы избежать лага при первой активации объекта
-                // Но делаем это только если она еще не активна
                 if (!aimCamera.activeSelf) aimCamera.SetActive(true);
-                
-                currentVcamPriority = defaultPriority;
                 aimVcam.Priority.Value = defaultPriority;
             }
         }
-
-        mainCamera = Camera.main;
     }
 
     private void OnEnable()
@@ -92,11 +84,9 @@ public class PlayerController : MonoBehaviour
 
     private void Start()
     {
-        // Принудительно выставляем приоритет в Start, чтобы Cinemachine точно его подхватил
         if (aimVcam != null)
         {
             aimVcam.Priority.Value = defaultPriority;
-            Debug.Log($"[CameraDebug] Initialized AimCamera Priority to {defaultPriority}");
         }
     }
 
@@ -118,8 +108,7 @@ public class PlayerController : MonoBehaviour
             // Переключаем приоритет только при изменении состояния
             if (aimVcam != null)
             {
-                currentVcamPriority = isAiming ? aimPriority : defaultPriority;
-                aimVcam.Priority.Value = currentVcamPriority;
+                aimVcam.Priority.Value = isAiming ? aimPriority : defaultPriority;
             }
             
             if (animator != null)
@@ -127,6 +116,9 @@ public class PlayerController : MonoBehaviour
                 animator.SetBool("IsAiming", isAiming);
             }
         }
+
+        // Плавное изменение веса IK
+        ikWeight = Mathf.Lerp(ikWeight, isAiming ? 1f : 0f, Time.deltaTime * 10f);
 
         Vector3 cameraForward = cameraTarget.forward;
         Vector3 cameraRight = cameraTarget.right;
@@ -203,21 +195,22 @@ public class PlayerController : MonoBehaviour
             animator.SetFloat(SpeedHash, planarSpeed, speedDamp, Time.deltaTime);
         }
     }
+
     private void OnAnimatorIK(int layerIndex)
     {
         if (animator == null || cameraTarget == null) return;
 
-        if (isAiming)
+        if (ikWeight > 0.01f)
         {
-            // Используем направление cameraTarget напрямую для исключения лага в 1 кадр
-            Vector3 aimAtPos = cameraTarget.position + cameraTarget.forward * 20f;
+            // Точка, куда мы смотрим (далеко впереди по направлению прицела)
+            Vector3 lookAtPos = cameraTarget.position + cameraTarget.forward * 20f;
 
-            // Веса: Тело (Body) = 0.2 для мягкости, Голова (Head) = 1.0 для точности, Clamp = 0.5
-            animator.SetLookAtWeight(1f, 0.2f, 1f, 1f, 0.5f);
-            animator.SetLookAtPosition(aimAtPos);
+            // Настройка весов LookAt: Голова и глаза смотрят на цель, тело немного доворачивается
+            animator.SetLookAtWeight(ikWeight, 0.3f, 1f, 1f, 0.5f);
+            animator.SetLookAtPosition(lookAtPos);
 
-            // Поворачиваем руку за целью
-            animator.SetIKRotationWeight(AvatarIKGoal.RightHand, 1f);
+            // Направляем правую руку вперед по линии прицела
+            animator.SetIKRotationWeight(AvatarIKGoal.RightHand, ikWeight);
             animator.SetIKRotation(AvatarIKGoal.RightHand, cameraTarget.rotation);
         }
         else

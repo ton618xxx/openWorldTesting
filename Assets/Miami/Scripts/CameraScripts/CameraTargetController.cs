@@ -56,7 +56,9 @@ public class CameraTargetController : MonoBehaviour
 
     private void LateUpdate()
     {
-        // Применяем поворот здесь, чтобы Cinemachine (в LateUpdate) видел актуальные данные
+        // Применяем поворот здесь. Это гарантирует, что Cinemachine увидит правильный поворот 
+        // ПОСЛЕ того, как персонаж переместился и повернулся в Update. 
+        // Это предотвращает "эффект спирали" или "spinning".
         myTransform.rotation = Quaternion.Euler(pitch, yaw, 0f); 
     }
 
