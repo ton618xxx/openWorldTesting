@@ -12,6 +12,7 @@ public class PlayerController : MonoBehaviour
     [Header("Movement")]
     [SerializeField] private float walkSpeed = 3.5f;
     [SerializeField] private float sprintSpeed = 6f;
+    [SerializeField] private float aimWalkSpeed = 2.5f;
     [SerializeField] private float turnSpeed = 12f;
 
     [Header("Jump / Gravity")]
@@ -25,21 +26,31 @@ public class PlayerController : MonoBehaviour
     [Header("Aiming")]
     [SerializeField] private GameObject aimCamera;
     [SerializeField] private float aimTurnSpeed = 20f;
+    [SerializeField] private int aimPriority = 20;
+    [SerializeField] private int defaultPriority = 5;
 
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
     private static readonly int JumpHash = Animator.StringToHash("Jump");
 
     private CharacterController characterController;
     private InputSystem_Actions inputActions;
+    private Unity.Cinemachine.CinemachineCamera aimVcam;
+    private Camera mainCamera;
+    private Transform myTransform;
 
     private Vector3 verticalVelocity;
     private bool isJumping;
     private float nextJumpTime;
     private bool isAiming;
+    private int currentVcamPriority;
 
     private void Awake()
     {
-        characterController = GetComponent<CharacterController>();
+        myTransform = transform;
+        if (!TryGetComponent(out characterController))
+        {
+            Debug.LogError("CharacterController missing on Player", this);
+        }
 
         if (animator == null)
         {
@@ -47,25 +58,75 @@ public class PlayerController : MonoBehaviour
         }
 
         inputActions = new InputSystem_Actions();
+        
+        if (aimCamera != null)
+        {
+            if (aimCamera.TryGetComponent(out aimVcam))
+            {
+                // Убеждаемся, что камера активна, чтобы избежать лага при первой активации объекта
+                // Но делаем это только если она еще не активна
+                if (!aimCamera.activeSelf) aimCamera.SetActive(true);
+                
+                currentVcamPriority = defaultPriority;
+                aimVcam.Priority.Value = defaultPriority;
+            }
+        }
+
+        mainCamera = Camera.main;
     }
 
     private void OnEnable()
     {
-        inputActions.Player.Enable();
+        inputActions?.Player.Enable();
     }
 
     private void OnDisable()
     {
-        inputActions.Player.Disable();
+        inputActions?.Player.Disable();
+    }
+
+    private void OnDestroy()
+    {
+        inputActions?.Dispose();
+    }
+
+    private void Start()
+    {
+        // Принудительно выставляем приоритет в Start, чтобы Cinemachine точно его подхватил
+        if (aimVcam != null)
+        {
+            aimVcam.Priority.Value = defaultPriority;
+            Debug.Log($"[CameraDebug] Initialized AimCamera Priority to {defaultPriority}");
+        }
     }
 
     private void Update()
     {
+        // Считываем ввод
         Vector2 moveInput = inputActions.Player.Move.ReadValue<Vector2>();
         bool isSprinting = inputActions.Player.Sprint.IsPressed();
         bool jumpPressed = inputActions.Player.Jump.WasPressedThisFrame();
-        isAiming = inputActions.Player.Aim.IsPressed();
+        
+        bool grounded = characterController.isGrounded;
+        
+        // Прицеливание разрешено только на земле и если мы не прыгаем
+        bool newIsAiming = inputActions.Player.Aim.IsPressed() && grounded && !isJumping && !jumpPressed;
 
+        if (newIsAiming != isAiming)
+        {
+            isAiming = newIsAiming;
+            // Переключаем приоритет только при изменении состояния
+            if (aimVcam != null)
+            {
+                currentVcamPriority = isAiming ? aimPriority : defaultPriority;
+                aimVcam.Priority.Value = currentVcamPriority;
+            }
+            
+            if (animator != null)
+            {
+                animator.SetBool("IsAiming", isAiming);
+            }
+        }
 
         Vector3 cameraForward = cameraTarget.forward;
         Vector3 cameraRight = cameraTarget.right;
@@ -83,16 +144,15 @@ public class PlayerController : MonoBehaviour
             moveDirection.Normalize();
         }
 
-
         if (isAiming)
         {
             // Если прицеливаемся — персонаж всегда смотрит туда, куда смотрит камера
             Vector3 targetLook = cameraTarget.forward;
-            targetLook.y = 0; // Нам не нужно, чтобы персонаж наклонялся вверх/вниз всем телом
+            targetLook.y = 0; 
             Quaternion targetRotation = Quaternion.LookRotation(targetLook);
 
-            transform.rotation = Quaternion.Slerp(
-                transform.rotation,
+            myTransform.rotation = Quaternion.Slerp(
+                myTransform.rotation,
                 targetRotation,
                 aimTurnSpeed * Time.deltaTime);
         }
@@ -100,24 +160,20 @@ public class PlayerController : MonoBehaviour
         {
             // Старая логика: поворот в сторону бега
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-            transform.rotation = Quaternion.Slerp(
-                transform.rotation,
+            myTransform.rotation = Quaternion.Slerp(
+                myTransform.rotation,
                 targetRotation,
                 turnSpeed * Time.deltaTime);
         }
 
-        float currentSpeed = isSprinting ? sprintSpeed : walkSpeed;
+        float currentSpeed = isAiming ? aimWalkSpeed : (isSprinting ? sprintSpeed : walkSpeed);
         Vector3 horizontalMovement = moveDirection * currentSpeed;
 
-        bool grounded = characterController.isGrounded;
-
-        
         if (grounded && verticalVelocity.y < 0f)
         {
             verticalVelocity.y = -2f;
         }
 
-        // Сбрасываем только при приземлении (падаем вниз), не на вершине прыжка где velocity.y ≈ 0.
         if (isJumping && grounded && verticalVelocity.y < 0f)
         {
             isJumping = false;
@@ -142,18 +198,32 @@ public class PlayerController : MonoBehaviour
         if (animator != null)
         {
             float planarSpeed = new Vector2(characterController.velocity.x, characterController.velocity.z).magnitude;
+            // Порог, чтобы ноги не дергались при микро-движениях
+            if (planarSpeed < 0.1f) planarSpeed = 0f;
             animator.SetFloat(SpeedHash, planarSpeed, speedDamp, Time.deltaTime);
         }
+    }
+    private void OnAnimatorIK(int layerIndex)
+    {
+        if (animator == null || cameraTarget == null) return;
 
-        if (aimCamera != null)
+        if (isAiming)
         {
-            aimCamera.SetActive(isAiming);
+            // Используем направление cameraTarget напрямую для исключения лага в 1 кадр
+            Vector3 aimAtPos = cameraTarget.position + cameraTarget.forward * 20f;
+
+            // Веса: Тело (Body) = 0.2 для мягкости, Голова (Head) = 1.0 для точности, Clamp = 0.5
+            animator.SetLookAtWeight(1f, 0.2f, 1f, 1f, 0.5f);
+            animator.SetLookAtPosition(aimAtPos);
+
+            // Поворачиваем руку за целью
+            animator.SetIKRotationWeight(AvatarIKGoal.RightHand, 1f);
+            animator.SetIKRotation(AvatarIKGoal.RightHand, cameraTarget.rotation);
         }
-
-        if (animator != null)
+        else
         {
-            // Передаем состояние прицеливания в аниматор
-            animator.SetBool("IsAiming", isAiming);
+            animator.SetLookAtWeight(0f);
+            animator.SetIKRotationWeight(AvatarIKGoal.RightHand, 0f);
         }
     }
 }
