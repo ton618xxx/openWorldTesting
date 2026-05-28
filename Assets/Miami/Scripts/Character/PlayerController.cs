@@ -24,9 +24,11 @@ public class PlayerController : MonoBehaviour
 
     [Header("Aiming")]
     [SerializeField] private GameObject aimCamera;
+    [SerializeField] private GameObject crosshair;
     [SerializeField] private float aimTurnSpeed = 30f; // Увеличили для большей отзывчивости
     [SerializeField] private int aimPriority = 20;
     [SerializeField] private int defaultPriority = 5;
+    [SerializeField] private Vector3 aimHandRotationOffset = Vector3.zero;
 
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
     private static readonly int JumpHash = Animator.StringToHash("Jump");
@@ -66,6 +68,11 @@ public class PlayerController : MonoBehaviour
                 if (!aimCamera.activeSelf) aimCamera.SetActive(true);
                 aimVcam.Priority.Value = defaultPriority;
             }
+        }
+
+        if (crosshair != null)
+        {
+            crosshair.SetActive(false);
         }
     }
 
@@ -116,6 +123,11 @@ public class PlayerController : MonoBehaviour
             if (animator != null)
             {
                 animator.SetBool("IsAiming", isAiming);
+            }
+
+            if (crosshair != null)
+            {
+                crosshair.SetActive(isAiming);
             }
         }
 
@@ -224,9 +236,9 @@ public class PlayerController : MonoBehaviour
             animator.SetLookAtWeight(ikWeight, 0.3f, 1f, 1f, 0.5f);
             animator.SetLookAtPosition(lookAtPos);
 
-            // Направляем правую руку вперед по линии прицела
+            // Направляем правую руку вперед по линии прицела со смещением
             animator.SetIKRotationWeight(AvatarIKGoal.RightHand, ikWeight);
-            animator.SetIKRotation(AvatarIKGoal.RightHand, cameraTarget.rotation);
+            animator.SetIKRotation(AvatarIKGoal.RightHand, cameraTarget.rotation * Quaternion.Euler(aimHandRotationOffset));
         }
         else
         {
