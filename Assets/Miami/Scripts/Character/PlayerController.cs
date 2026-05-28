@@ -30,6 +30,8 @@ public class PlayerController : MonoBehaviour
 
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
     private static readonly int JumpHash = Animator.StringToHash("Jump");
+    private static readonly int InputXHash = Animator.StringToHash("InputX");
+    private static readonly int InputYHash = Animator.StringToHash("InputY");
 
     private CharacterController characterController;
     private InputSystem_Actions inputActions;
@@ -193,6 +195,19 @@ public class PlayerController : MonoBehaviour
             // Порог, чтобы ноги не дергались при микро-движениях
             if (planarSpeed < 0.1f) planarSpeed = 0f;
             animator.SetFloat(SpeedHash, planarSpeed, speedDamp, Time.deltaTime);
+
+            if (isAiming)
+            {
+                // Переводим мировую скорость в локальную для 2D Blend Tree
+                Vector3 localVelocity = myTransform.InverseTransformDirection(characterController.velocity);
+                
+                // Делим на walkSpeed, чтобы получить значения в районе [-1, 1] для аниматора
+                float x = localVelocity.x / walkSpeed;
+                float y = localVelocity.z / walkSpeed;
+
+                animator.SetFloat(InputXHash, x, speedDamp, Time.deltaTime);
+                animator.SetFloat(InputYHash, y, speedDamp, Time.deltaTime);
+            }
         }
     }
 
