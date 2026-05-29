@@ -44,6 +44,8 @@ public class PlayerController : MonoBehaviour
     private bool isJumping;
     private float nextJumpTime;
     private bool isAiming;
+    private float airTime;
+    public bool IsAiming => isAiming;
     private float ikWeight = 0f; // Плавный переход для IK
 
     private void Awake()
@@ -108,8 +110,14 @@ public class PlayerController : MonoBehaviour
         
         bool grounded = characterController.isGrounded;
         
-        // Прицеливание разрешено только на земле и если мы не прыгаем
-        bool newIsAiming = inputActions.Player.Aim.IsPressed() && grounded && !isJumping && !jumpPressed;
+        // Накапливаем время в воздухе, чтобы избежать мерцания прицела на кочках
+        if (grounded) airTime = 0f;
+        else airTime += Time.deltaTime;
+
+        bool isStableGrounded = grounded || airTime < 0.15f;
+
+        // Прицеливание разрешено только на стабильной поверхности и если мы не прыгаем
+        bool newIsAiming = inputActions.Player.Aim.IsPressed() && isStableGrounded && !isJumping && !jumpPressed;
 
         if (newIsAiming != isAiming)
         {

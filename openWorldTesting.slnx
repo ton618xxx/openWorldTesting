@@ -2,7 +2,6 @@
   <Project Path="Unity.AI.Sound.csproj" />
   <Project Path="Unity.Timeline.csproj" />
   <Project Path="Unity.PlasticSCM.Editor.csproj" />
-  <Project Path="Unity.AI.Toolkit.Asset.csproj" />
   <Project Path="Unity.Mathematics.csproj" />
   <Project Path="Unity.Timeline.Editor.csproj" />
   <Project Path="Unity.Cinemachine.Editor.csproj" />
@@ -72,6 +71,7 @@
   <Project Path="Unity.InputSystem.ForUI.csproj" />
   <Project Path="Unity.AI.Generators.Asset.csproj" />
   <Project Path="Unity.AI.Navigation.csproj" />
+  <Project Path="Unity.AI.Toolkit.Asset.csproj" />
   <Project Path="Unity.Collections.CodeGen.csproj" />
   <Project Path="Unity.AI.Assistant.AssetGenerators.Editor.csproj" />
   <Project Path="Unity.Mathematics.Editor.csproj" />
@@ -87,9 +87,9 @@
   <Project Path="Unity.EditorCoroutines.Editor.csproj" />
   <Project Path="Unity.CollabProxy.Editor.csproj" />
   <Project Path="Unity.AI.Toolkit.Async.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Unity.AI.Assistant.Bridge.Editor.csproj" />
   <Project Path="Unity.AI.Toolkit.Compliance.csproj" />
-  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Unity.InputSystem.DocCodeSamples.csproj" />
   <Project Path="Unity.AI.Toolkit.GenerationContextMenu.csproj" />
   <Project Path="Unity.InternalAPIEngineBridge.004.csproj" />
