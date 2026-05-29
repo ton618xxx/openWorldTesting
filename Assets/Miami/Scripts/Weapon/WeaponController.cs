@@ -8,12 +8,18 @@ public class WeaponController : MonoBehaviour
     [SerializeField] private float range = 100f;
     [SerializeField] private LayerMask hitLayers;
 
+
+    [Header("Bullet")]
+    [SerializeField] private Bullet bulletPrefab;
+    [SerializeField] private float bulletDamage = 25f;  
+
+
     [Header("Ссылки")]
     [SerializeField] private Transform muzzlePoint;
     [SerializeField] private ParticleSystem muzzleFlash;
     [SerializeField] private GameObject hitEffectPrefab;
-    [SerializeField] private LineRenderer tracerPrefab;
     [SerializeField] private Transform cameraTransform;
+    [SerializeField] private ParticleSystem shellEjectEffect; 
 
     private float nextFireTime;
     private InputSystem_Actions inputActions;
@@ -55,40 +61,19 @@ public class WeaponController : MonoBehaviour
     private void Fire()
     {
         if (muzzleFlash != null) muzzleFlash.Play();
-
-        // Raycast идет из центра камеры вперед
+        if (shellEjectEffect != null) shellEjectEffect.Play();
+        // 1) Куда целимся: луч из центра камеры
         Ray ray = new Ray(cameraTransform.position, cameraTransform.forward);
-        Vector3 targetPoint;
-
-        if (Physics.Raycast(ray, out RaycastHit hit, range, hitLayers))
+        Vector3 targetPoint = Physics.Raycast(ray, out RaycastHit hit, range, hitLayers)
+            ? hit.point
+            : ray.GetPoint(range);
+        // 2) Направление от дула к точке прицела
+        Vector3 dir = (targetPoint - muzzlePoint.position).normalized;
+        // 3) Создаём пулю-объект
+        if (bulletPrefab != null && muzzlePoint != null)
         {
-            targetPoint = hit.point;
-            SpawnHitEffect(hit);
+            Bullet bullet = Instantiate(bulletPrefab, muzzlePoint.position, Quaternion.LookRotation(dir));
+            bullet.Launch(dir, bulletDamage);
         }
-        else
-        {
-            // Если никуда не попали, пуля летит в "пустоту" на макс. дистанцию
-            targetPoint = ray.GetPoint(range);
-        }
-
-        SpawnTracer(targetPoint);
-    }
-
-    private void SpawnHitEffect(RaycastHit hit)
-    {
-        if (hitEffectPrefab != null)
-        {
-            Instantiate(hitEffectPrefab, hit.point, Quaternion.LookRotation(hit.normal));
-        }
-    }
-
-    private void SpawnTracer(Vector3 targetPoint)
-    {
-        if (tracerPrefab == null || muzzlePoint == null) return;
-
-        LineRenderer tracer = Instantiate(tracerPrefab, muzzlePoint.position, Quaternion.identity);
-        tracer.SetPosition(0, muzzlePoint.position);
-        tracer.SetPosition(1, targetPoint);
-        Destroy(tracer.gameObject, 0.04f); // Трассер живет очень мало
     }
 }
