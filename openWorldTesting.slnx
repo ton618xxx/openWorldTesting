@@ -10,6 +10,7 @@
   <Project Path="Unity.Multiplayer.Center.Editor.csproj" />
   <Project Path="Unity.Collections.csproj" />
   <Project Path="UnityEngine.UI.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Unity.VisualScripting.Core.Editor.csproj" />
   <Project Path="Unity.AI.Assistant.Runtime.csproj" />
   <Project Path="Unity.PerformanceTesting.Editor.csproj" />
@@ -82,7 +83,6 @@
   <Project Path="Unity.Multiplayer.Center.Common.csproj" />
   <Project Path="glTFast.Documentation.Examples.csproj" />
   <Project Path="Unity.AI.Generators.UI.AIDropdownIntegrations.csproj" />
-  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Unity.Services.Core.Environments.Internal.csproj" />
   <Project Path="Unity.InputSystem.ForUI.csproj" />
   <Project Path="Unity.AI.Generators.Asset.csproj" />
